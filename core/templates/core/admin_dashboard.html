@@ -1,0 +1,737 @@
+<!-- core/templates/core/admin_dashboard.html -->
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - {{ site_name }}{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<!-- Admin Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{% url 'admin_dashboard' %}">
+            <i class="bi bi-gear-wide-connected text-info"></i> {{ site_name }} Admin
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'index' %}" class="btn btn-sm btn-outline-light rounded-pill" target="_blank">
+                <i class="bi bi-eye"></i> View Site
+            </a>
+            <a href="{% url 'admin_logout' %}" class="btn btn-sm btn-outline-danger rounded-pill">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid py-4">
+    <!-- Messages -->
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="bi {% if message.tags == 'success' %}bi-check-circle{% elif message.tags == 'warning' %}bi-exclamation-triangle{% else %}bi-exclamation-circle{% endif %}"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-primary text-white shadow">
+                <div class="card-body text-center">
+                    <i class="bi bi-link-45deg display-6"></i>
+                    <h3 class="mb-0">{{ total_links }}</h3>
+                    <small>Total Links</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-success text-white shadow">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle display-6"></i>
+                    <h3 class="mb-0">{{ active_links }}</h3>
+                    <small>Active Links</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-danger text-white shadow">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle display-6"></i>
+                    <h3 class="mb-0">{{ broken_links }}</h3>
+                    <small>Broken Links</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 bg-info text-white shadow">
+                <div class="card-body text-center">
+                    <i class="bi bi-cursor display-6"></i>
+                    <h3 class="mb-0">{{ total_clicks }}</h3>
+                    <small>Total Clicks</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="text-primary mb-0">{{ total_categories }}</h5>
+                    <small class="text-muted">Categories</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="text-success mb-0">{{ total_tags }}</h5>
+                    <small class="text-muted">Tags</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="text-warning mb-0">{{ unresolved_reports }}</h5>
+                    <small class="text-muted">Open Reports</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="text-info mb-0">{{ unread_feedback }}</h5>
+                    <small class="text-muted">Unread Feedback</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#linksTab" type="button">
+                <i class="bi bi-link-45deg"></i> Links
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#categoriesTab" type="button">
+                <i class="bi bi-folder"></i> Categories
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#analyticsTab" type="button">
+                <i class="bi bi-graph-up"></i> Analytics
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#importTab" type="button">
+                <i class="bi bi-cloud-upload"></i> Import/Export
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link position-relative" data-bs-toggle="tab" data-bs-target="#reportsTab" type="button">
+                <i class="bi bi-flag"></i> Reports
+                {% if unresolved_reports %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ unresolved_reports }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link position-relative" data-bs-toggle="tab" data-bs-target="#feedbackTab" type="button">
+                <i class="bi bi-chat-dots"></i> Feedback
+                {% if unread_feedback %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info">{{ unread_feedback }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tagsTab" type="button">
+                <i class="bi bi-tags"></i> Tags
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="adminTabsContent">
+
+        <!-- ========== LINKS TAB ========== -->
+        <div class="tab-pane fade show active" id="linksTab" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Manage Links</h5>
+                <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addLinkModal">
+                    <i class="bi bi-plus-lg"></i> Add Link
+                </button>
+            </div>
+
+            <!-- Search within admin -->
+            <div class="mb-3">
+                <input type="text" class="form-control" id="adminLinkSearch" placeholder="Search links...">
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="linksTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Categories</th>
+                            <th>Tags</th>
+                            <th>Clicks</th>
+                            <th>Rating</th>
+                            <th>Status</th>
+                            <th>Featured</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for link in links %}
+                        <tr class="admin-link-row" data-title="{{ link.title|lower }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ link.favicon }}" width="20" height="20" class="me-2" onerror="this.src='https://www.google.com/s2/favicons?domain=example.com&sz=64'">
+                                    <div>
+                                        <strong>{{ link.title }}</strong>
+                                        <br><small class="text-muted">{{ link.url|truncatechars:50 }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% for cat in link.categories.all %}
+                                <span class="badge rounded-pill" style="background-color:{{ cat.color }}">{{ cat.name }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% for tag in link.tags.all|slice:":3" %}
+                                <span class="badge bg-light text-dark">{{ tag.name }}</span>
+                                {% endfor %}
+                            </td>
+                            <td><span class="badge bg-info">{{ link.click_count }}</span></td>
+                            <td>
+                                {% if link.avg_rating > 0 %}
+                                <span class="text-warning">★</span> {{ link.avg_rating }} ({{ link.total_ratings }})
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if link.link_status == 'active' %}
+                                <span class="badge bg-success">✓ Active</span>
+                                {% elif link.link_status == 'broken' %}
+                                <span class="badge bg-danger">✗ Broken</span>
+                                {% else %}
+                                <span class="badge bg-secondary">? Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_featured">
+                                    <input type="hidden" name="link_id" value="{{ link.id }}">
+                                    <button type="submit" class="btn btn-sm {% if link.is_featured %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+                                        <i class="bi bi-star{% if link.is_featured %}-fill{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary edit-link-btn" data-link-id="{{ link.id }}" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this link?')">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_link">
+                                        <input type="hidden" name="link_id" value="{{ link.id }}">
+                                        <button class="btn btn-outline-danger" type="submit" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No links yet. Add your first link!</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========== CATEGORIES TAB ========== -->
+        <div class="tab-pane fade" id="categoriesTab" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Manage Categories</h5>
+                <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                    <i class="bi bi-plus-lg"></i> Add Category
+                </button>
+            </div>
+
+            <div class="row g-3">
+                {% for cat in categories %}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body text-center">
+                            <i class="{{ cat.icon }} display-5" style="color:{{ cat.color }}"></i>
+                            <h6 class="mt-2 mb-1">{{ cat.name }}</h6>
+                            <p class="small text-muted mb-1">{{ cat.description|truncatewords:10 }}</p>
+                            <span class="badge bg-primary rounded-pill mb-2">{{ cat.total_links }} links</span>
+                            {% if not cat.is_active %}
+                            <span class="badge bg-warning">Inactive</span>
+                            {% endif %}
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary edit-cat-btn" data-cat-id="{{ cat.id }}" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Delete category &quot;{{ cat.name }}&quot;? Links won\'t be deleted.')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_category">
+                                    <input type="hidden" name="category_id" value="{{ cat.id }}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-4 text-muted">No categories yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ========== ANALYTICS TAB ========== -->
+        <div class="tab-pane fade" id="analyticsTab" role="tabpanel">
+            <h5 class="mb-3">Click Analytics (Last 30 Days)</h5>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <canvas id="clickChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <h5 class="mb-3">Top 10 Most Clicked</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Link</th>
+                            <th>Clicks</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for link in top_links %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <img src="{{ link.favicon }}" width="20" height="20" class="me-1" onerror="this.src='https://www.google.com/s2/favicons?domain=example.com&sz=64'">
+                                {{ link.title }}
+                            </td>
+                            <td><span class="badge bg-primary">{{ link.click_count }}</span></td>
+                            <td><span class="text-warning">★</span> {{ link.avg_rating }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========== IMPORT/EXPORT TAB ========== -->
+        <div class="tab-pane fade" id="importTab" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5><i class="bi bi-cloud-upload text-primary"></i> Import CSV</h5>
+                            <p class="text-muted small">Format: Category, Website Name, URL, Description, Tags (optional)</p>
+                            <form method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="import_csv">
+                                {{ csv_form.csv_file }}
+                                <button type="submit" class="btn btn-primary mt-3 rounded-pill">
+                                    <i class="bi bi-upload"></i> Import
+                                </button>
+                            </form>
+                            <div class="mt-3">
+                                <h6>Sample CSV Format:</h6>
+                                <pre class="bg-light p-2 rounded small">Government,Ahara Karnataka,https://ahara.karnataka.gov.in,Food and Ration Details,Ration,Food,BPL
+Information,Parivahan,https://parivahan.gov.in,Vehicle Registration Details,Vehicle,License
+Government + Information,Traffic Portal,https://ksp.gov.in,Check Challan Status,Traffic,Challan</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5><i class="bi bi-cloud-download text-success"></i> Export CSV</h5>
+                            <p class="text-muted small">Download all links as CSV backup file.</p>
+                            <a href="{% url 'export_csv' %}" class="btn btn-success rounded-pill">
+                                <i class="bi bi-download"></i> Export All Links
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== REPORTS TAB ========== -->
+        <div class="tab-pane fade" id="reportsTab" role="tabpanel">
+            <h5 class="mb-3">User Reports</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Link</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr class="{% if not report.is_resolved %}table-warning{% endif %}">
+                            <td>{{ report.link.title|default:"General" }}</td>
+                            <td><span class="badge bg-secondary">{{ report.get_report_type_display }}</span></td>
+                            <td>{{ report.message|truncatewords:15 }}</td>
+                            <td>{{ report.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if report.is_resolved %}
+                                <span class="badge bg-success">Resolved</span>
+                                {% else %}
+                                <span class="badge bg-warning">Open</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not report.is_resolved %}
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="resolve_report">
+                                    <input type="hidden" name="report_id" value="{{ report.id }}">
+                                    <button class="btn btn-sm btn-success rounded-pill" type="submit">
+                                        <i class="bi bi-check"></i> Resolve
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No reports</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========== FEEDBACK TAB ========== -->
+        <div class="tab-pane fade" id="feedbackTab" role="tabpanel">
+            <h5 class="mb-3">User Feedback</h5>
+            <div class="row g-3">
+                {% for fb in feedbacks %}
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm {% if not fb.is_read %}border-start border-info border-3{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ fb.name|default:"Anonymous" }}</strong>
+                                    {% if fb.email %}<small class="text-muted ms-2">{{ fb.email }}</small>{% endif %}
+                                </div>
+                                <small class="text-muted">{{ fb.created_at|timesince }} ago</small>
+                            </div>
+                            <p class="mt-2 mb-2">{{ fb.message }}</p>
+                            {% if not fb.is_read %}
+                            <form method="POST" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="mark_feedback_read">
+                                <input type="hidden" name="feedback_id" value="{{ fb.id }}">
+                                <button class="btn btn-sm btn-outline-info rounded-pill" type="submit">
+                                    <i class="bi bi-check2"></i> Mark Read
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="badge bg-success">Read</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-4 text-muted">No feedback yet</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ========== TAGS TAB ========== -->
+        <div class="tab-pane fade" id="tagsTab" role="tabpanel">
+            <h5 class="mb-3">Manage Tags</h5>
+            <div class="d-flex flex-wrap gap-2">
+                {% for tag in tags %}
+                <div class="d-inline-flex align-items-center badge bg-light text-dark border p-2">
+                    <span class="me-2">{{ tag.name }} <small class="text-muted">({{ tag.total_links }})</small></span>
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('Delete tag?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_tag">
+                        <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                        <button class="btn btn-sm btn-link text-danger p-0" type="submit"><i class="bi bi-x"></i></button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-muted">No tags yet. Tags are created automatically when adding links.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ADD LINK MODAL ========== -->
+<div class="modal fade" id="addLinkModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="linkModalTitle"><i class="bi bi-plus-circle text-primary"></i> Add New Link</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="linkForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_link" id="linkFormAction">
+                <input type="hidden" name="link_id" value="" id="linkFormId">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Title *</label>
+                            {{ link_form.title }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">URL *</label>
+                            {{ link_form.url }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description *</label>
+                            {{ link_form.description }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Categories *</label>
+                            <div class="border rounded p-2" style="max-height:200px;overflow-y:auto;">
+                                {% for cat in categories %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="categories" value="{{ cat.id }}" id="cat_{{ cat.id }}">
+                                    <label class="form-check-label" for="cat_{{ cat.id }}">
+                                        <i class="{{ cat.icon }}" style="color:{{ cat.color }}"></i> {{ cat.name }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tags</label>
+                            {{ link_form.tags_input }}
+                            <div class="mt-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_featured" id="linkFeatured">
+                                    <label class="form-check-label" for="linkFeatured">Featured Link</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="linkActive" checked>
+                                    <label class="form-check-label" for="linkActive">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill" id="linkSubmitBtn">
+                        <i class="bi bi-plus-lg"></i> Add Link
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ADD CATEGORY MODAL ========== -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title" id="catModalTitle"><i class="bi bi-folder-plus text-primary"></i> Add Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="categoryForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_category" id="catFormAction">
+                <input type="hidden" name="category_id" value="" id="catFormId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        {{ category_form.name }}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Icon</label>
+                            {{ category_form.icon }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Color</label>
+                            {{ category_form.color }}
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Description</label>
+                        {{ category_form.description }}
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Display Order</label>
+                            {{ category_form.order }}
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="catActive" checked>
+                                <label class="form-check-label" for="catActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill" id="catSubmitBtn">
+                        <i class="bi bi-plus-lg"></i> Add Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===== Chart.js =====
+const chartLabels = {{ chart_labels|safe }};
+const chartValues = {{ chart_values|safe }};
+
+if (chartLabels.length > 0) {
+    const ctx = document.getElementById('clickChart');
+    if (ctx) {
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Clicks',
+                    data: chartValues,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true },
+                    x: { display: true }
+                }
+            }
+        });
+    }
+}
+
+// ===== Admin Link Search =====
+document.getElementById('adminLinkSearch')?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.admin-link-row').forEach(row => {
+        row.style.display = row.dataset.title.includes(q) ? '' : 'none';
+    });
+});
+
+// ===== Edit Category =====
+document.querySelectorAll('.edit-cat-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const catId = this.dataset.catId;
+        const resp = await fetch(`?fetch=category&id=${catId}`);
+        const data = await resp.json();
+
+        document.getElementById('catModalTitle').innerHTML = '<i class="bi bi-pencil text-warning"></i> Edit Category';
+        document.getElementById('catFormAction').value = 'edit_category';
+        document.getElementById('catFormId').value = data.id;
+        document.getElementById('catSubmitBtn').innerHTML = '<i class="bi bi-check-lg"></i> Update Category';
+
+        // Fill form
+        document.querySelector('#categoryForm [name="name"]').value = data.name;
+        document.querySelector('#categoryForm [name="icon"]').value = data.icon;
+        document.querySelector('#categoryForm [name="color"]').value = data.color;
+        document.querySelector('#categoryForm [name="description"]').value = data.description;
+        document.querySelector('#categoryForm [name="order"]').value = data.order;
+        document.getElementById('catActive').checked = data.is_active;
+
+        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+    });
+});
+
+// Reset category modal on close
+document.getElementById('addCategoryModal')?.addEventListener('hidden.bs.modal', function() {
+    document.getElementById('catModalTitle').innerHTML = '<i class="bi bi-folder-plus text-primary"></i> Add Category';
+    document.getElementById('catFormAction').value = 'add_category';
+    document.getElementById('catFormId').value = '';
+    document.getElementById('catSubmitBtn').innerHTML = '<i class="bi bi-plus-lg"></i> Add Category';
+    document.getElementById('categoryForm').reset();
+    document.getElementById('catActive').checked = true;
+});
+
+// ===== Edit Link =====
+document.querySelectorAll('.edit-link-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const linkId = this.dataset.linkId;
+        const resp = await fetch(`?fetch=link&id=${linkId}`);
+        const data = await resp.json();
+
+        document.getElementById('linkModalTitle').innerHTML = '<i class="bi bi-pencil text-warning"></i> Edit Link';
+        document.getElementById('linkFormAction').value = 'edit_link';
+        document.getElementById('linkFormId').value = data.id;
+        document.getElementById('linkSubmitBtn').innerHTML = '<i class="bi bi-check-lg"></i> Update Link';
+
+        // Fill form
+        document.querySelector('#linkForm [name="title"]').value = data.title;
+        document.querySelector('#linkForm [name="url"]').value = data.url;
+        document.querySelector('#linkForm [name="description"]').value = data.description;
+        document.querySelector('#linkForm [name="tags_input"]').value = data.tags;
+        document.getElementById('linkFeatured').checked = data.is_featured;
+        document.getElementById('linkActive').checked = data.is_active;
+
+        // Check categories
+        document.querySelectorAll('#linkForm [name="categories"]').forEach(cb => {
+            cb.checked = data.categories.includes(parseInt(cb.value));
+        });
+
+        new bootstrap.Modal(document.getElementById('addLinkModal')).show();
+    });
+});
+
+// Reset link modal on close
+document.getElementById('addLinkModal')?.addEventListener('hidden.bs.modal', function() {
+    document.getElementById('linkModalTitle').innerHTML = '<i class="bi bi-plus-circle text-primary"></i> Add New Link';
+    document.getElementById('linkFormAction').value = 'add_link';
+    document.getElementById('linkFormId').value = '';
+    document.getElementById('linkSubmitBtn').innerHTML = '<i class="bi bi-plus-lg"></i> Add Link';
+    document.getElementById('linkForm').reset();
+    document.getElementById('linkActive').checked = true;
+});
+</script>
+{% endblock %}

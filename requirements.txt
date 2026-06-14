@@ -1,0 +1,9 @@
+# requirements.txt
+Django
+psycopg2-binary
+requests
+django-import-export
+Pillow
+gunicorn
+whitenoise
+dj-database-url

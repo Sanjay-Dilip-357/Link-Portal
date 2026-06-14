@@ -1,0 +1,51 @@
+<!-- core/templates/core/admin_login.html -->
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Admin Login - {{ site_name }}{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center admin-login-bg">
+    <div class="card border-0 shadow-lg" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <div class="admin-lock-icon mb-3">
+                    <i class="bi bi-shield-lock display-4 text-primary"></i>
+                </div>
+                <h4 class="fw-bold">Admin Portal</h4>
+                <p class="text-muted small">Restricted Access Only</p>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Username</label>
+                    {{ form.username }}
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-muted">Password</label>
+                    {{ form.password }}
+                </div>
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'index' %}" class="small text-muted text-decoration-none">
+                    <i class="bi bi-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
