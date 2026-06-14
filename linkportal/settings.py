@@ -5,28 +5,24 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ===== SECRET KEY =====
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',
     'django-insecure-local-dev-only-change-in-production'
 )
 
-# ===== DEBUG =====
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
-# ===== ALLOWED HOSTS =====
 ALLOWED_HOSTS = os.environ.get(
     'DJANGO_ALLOWED_HOSTS',
     'localhost,127.0.0.1'
 ).split(',')
 
-# Auto-add Railway domain
-RAILWAY_STATIC_URL = os.environ.get('RAILWAY_STATIC_URL')
-RAILWAY_PUBLIC_DOMAIN = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
-if RAILWAY_PUBLIC_DOMAIN:
-    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# ===== INSTALLED APPS =====
+ALLOWED_HOSTS.append('link-portal.onrender.com')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -38,7 +34,6 @@ INSTALLED_APPS = [
     'core',
 ]
 
-# ===== MIDDLEWARE =====
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -71,11 +66,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'linkportal.wsgi.application'
 
-# ===== DATABASE =====
+# =============================================
+# DATABASE SETTINGS
+# SQLite for local, PostgreSQL for production
+# =============================================
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if DATABASE_URL:
-    # Railway / Production PostgreSQL
+    # ── PRODUCTION (Render + Railway PostgreSQL) ──
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
@@ -83,19 +81,15 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local development PostgreSQL
+    # Local Development (SQLite)
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'linkportal'),
-            'USER': os.environ.get('DB_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'your_local_password'),
-            'HOST': os.environ.get('DB_HOST', 'localhost'),
-            'PORT': os.environ.get('DB_PORT', '5432'),
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 
-# ===== PASSWORD VALIDATORS =====
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -103,13 +97,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# ===== LOCALIZATION =====
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
-# ===== STATIC FILES =====
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -123,16 +115,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/secret-admin-portal/'
 LOGIN_REDIRECT_URL = '/secret-admin-portal/dashboard/'
 
-# ===== SECURITY (Production) =====
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
-# ===== SEARCH SYNONYMS =====
 SEARCH_SYNONYMS = {
     'rc': ['ration card', 'ration', 'ahara'],
     'dl': ['driving license', 'driving licence', 'license'],
